@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Walkie Talkie</title>
+</head>
+<body>
+    <h1>Walkie Talkie</h1>
+    <button id="toggleButton">Toggle</button>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        let isRecording = false;
+
+        const toggleButton = document.getElementById('toggleButton');
+        toggleButton.addEventListener('click', () => {
+            if (!isRecording) {
+                startRecording();
+            } else {
+                stopRecording();
+            }
+        });
+
+        function startRecording() {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    const audioContext = new AudioContext();
+                    const source = audioContext.createMediaStreamSource(stream);
+                    const processor = audioContext.createScriptProcessor(4096, 1, 1);
+
+                    processor.onaudioprocess = (e) => {
+                        const buffer = e.inputBuffer.getChannelData(0);
+                        socket.emit('audio', buffer);
+                    };
+
+                    source.connect(processor);
+                    processor.connect(audioContext.destination);
+                })
+                .catch(error => {
+                    console.error('Error accessing microphone:', error);
+                });
+
+            toggleButton.textContent = 'Stop';
+            isRecording = true;
+        }
+
+        function stopRecording() {
+            toggleButton.textContent = 'Start';
+            isRecording = false;
+        }
+    </script>
+</body>
+</html>
